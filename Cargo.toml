@@ -10,11 +10,11 @@ name = "modem_status"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-base64 = "0.13"
-lazy_static = "1"
-reqwest = { version = "0.10", features = ["cookies"] }
-serde = { version = "1", features = ["derive"] }
-tokio = { version = "0.2", features = ["macros", "rt-threaded"] }
-unhtml = { version = "0.8", features = ["derive"] }
-url = "2"
-warp = "0.2"
+base64 = "0.13.0"
+lazy_static = "1.4.0"
+reqwest = { version = "0.11.6", features = ["cookies"] }
+serde = { version = "1.0.130", features = ["derive"] }
+tokio = { version = "1.12.0", features = ["macros", "rt"] }
+unhtml = { version = "0.8.0", features = ["derive"] }
+url = "2.2.2"
+warp = "0.3.1"

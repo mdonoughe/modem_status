@@ -140,7 +140,7 @@ async fn test_handler() -> Result<warp::reply::Response, warp::reject::Rejection
         .map_or_else(|e| Ok(e.into_response()), |r| Ok(r.into_response()))
 }
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() {
     let health = warp::path!("health").and_then(test_handler);
 
