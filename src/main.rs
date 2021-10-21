@@ -13,7 +13,7 @@ lazy_static! {
     static ref MODEM_PASSWORD: Option<String> = env::var("MODEM_PASSWORD").ok();
     static ref AUTH_URL: Option<Result<Url, url::ParseError>> =
         MODEM_PASSWORD.as_ref().map(|password| Url::parse(&format!(
-            "https://{}/cmconnectionstatus.html?{}",
+            "https://{}/cmconnectionstatus.html?login_{}",
             MODEM_IP.as_ref(),
             base64::encode(format!("{}:{}", MODEM_USER.as_ref(), password))
         )));
@@ -88,11 +88,10 @@ async fn test(
         Ok(token) => token,
         Err(error) => return Err(error),
     };
+    let mut status_url = STATUS_URL.as_ref().unwrap().clone();
+    status_url.set_query(Some(&format!("ct_{}", token)));
     let request = client
-        .get(STATUS_URL.as_ref().unwrap().clone())
-        // the modem has a bug where the host header must come before the cookies
-        .header(reqwest::header::HOST, MODEM_IP.clone().into_owned())
-        .header(reqwest::header::COOKIE, format!("credential={}", token))
+        .get(status_url)
         .build()
         .unwrap();
     match client.execute(request).await {
@@ -129,9 +128,13 @@ async fn test(
     }
 }
 
-async fn test_handler(
-    client: reqwest::Client,
-) -> Result<warp::reply::Response, warp::reject::Rejection> {
+async fn test_handler() -> Result<warp::reply::Response, warp::reject::Rejection> {    
+    let client = reqwest::Client::builder()
+        .cookie_store(true)
+        .danger_accept_invalid_certs(true)
+        .build()
+        .unwrap();
+
     test(client)
         .await
         .map_or_else(|e| Ok(e.into_response()), |r| Ok(r.into_response()))
@@ -139,12 +142,7 @@ async fn test_handler(
 
 #[tokio::main]
 async fn main() {
-    let client = reqwest::Client::builder()
-        .danger_accept_invalid_certs(true)
-        .build()
-        .unwrap();
-
-    let health = warp::path!("health").and_then(move || test_handler(client.clone()));
+    let health = warp::path!("health").and_then(test_handler);
 
     warp::serve(health).run(([0, 0, 0, 0], 3030)).await;
 }

@@ -5,10 +5,10 @@ This is a small tool to workaround a firmware upgrade Comcast pushed out to my A
 The modem firmware is pretty terrible, so the process is:
 
 1. Send HTTP Basic authorization *and* the same "user:password" token as a query string (not a query string parameter) to the status page. On success, the status page will be replaced by a token. On failure, the status page will be replaced by the login page.
-2. Request the status page again, sending the token as an HTTP cookie.
+2. Request the status page again, sending the token as a query string (again, not a query parameter).
 3. Request logout.html to clean up resources. If you do not do this, a resource will be exhausted and you will no longer be able to log in until logout.html is requested.
 
-The modem interface is loaded over TLS 1.2, but using an expired, insecure, self-signed certificate that is not valid for the modem IP or even server identification. I assume all users have the same private key embedded in their firmware. The security is so bad that actually Windows software may refuse to connect, probably because of the md5RSA signature algorithm.
+The modem interface is loaded over TLS 1.2, but using a self-signed certificate that is not valid for the modem IP or even server identification. I assume all users have the same private key embedded in their firmware.
 
 ## Usage
 
@@ -16,7 +16,7 @@ Configure the environment variables:
 
 - `MODEM_IP`: The IP address of the modem. The default of 192.168.100.1 is probably correct.
 - `MODEM_USER`: The username for authenticating to the modem. The default of admin is probably correct.
-- `MODEM_PASSWORD`: The password for authenticating to the modem. If you haven't changed it, it is the last eight characters of the serial number printed on the bottom of the modem, in uppercase.
+- `MODEM_PASSWORD`: The password for authenticating to the modem. If you haven't changed it already, it is the last eight characters of the serial number printed on the bottom of the modem, in uppercase. You must log in to the modem and change the password at least once before using this program.
 
 Run modem_status.
 
