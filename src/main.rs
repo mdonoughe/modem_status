@@ -82,9 +82,9 @@ async fn get_token(client: &reqwest::Client) -> Result<String, warp::reply::With
 }
 
 async fn test(
-    client: reqwest::Client,
+    client: &reqwest::Client,
 ) -> Result<warp::reply::Json, warp::reply::WithStatus<String>> {
-    let token = match get_token(&client).await {
+    let token = match get_token(client).await {
         Ok(token) => token,
         Err(error) => return Err(error),
     };
@@ -98,13 +98,6 @@ async fn test(
         Ok(result) if result.status().is_success() => match result.text().await {
             Ok(text) => match StartupProcedure::from_html(&text) {
                 Ok(status) => {
-                    // the modem has a bug where if you keep logging in,
-                    // it will start telling you your password is incorrect
-                    // until the logout page is requested, even if the logout
-                    // page is requested without having logged in first.
-                    let _ = client.get(LOGOUT_URL.as_ref().unwrap().clone())
-                        .send()
-                        .await;
                     Ok(warp::reply::json(&status))
                 },
                 Err(error) => Err(warp::reply::with_status(
@@ -135,9 +128,20 @@ async fn test_handler() -> Result<warp::reply::Response, warp::reject::Rejection
         .build()
         .unwrap();
 
-    test(client)
-        .await
-        .map_or_else(|e| Ok(e.into_response()), |r| Ok(r.into_response()))
+    // Sometimes the modem sends the login page instead of the status page.
+    // Just hammer the thing with requests until it sends the correct response.
+    let mut tries = 15;
+    Ok(loop {
+        break match test(&client).await {
+            Ok(r) => r.into_response(),
+            Err(ref e) if tries > 0 => {
+                eprintln!("trying {} more times: {:?}", tries, e);
+                tries -= 1;
+                continue
+            },
+            Err(e) => e.into_response(),
+        }
+    })
 }
 
 #[tokio::main(flavor = "current_thread")]
