@@ -1,1 +1,2 @@
-/target/
+*
+!/target/release/modem_status
